@@ -16,7 +16,7 @@ app.use(morgan('dev'));
 
 connectDB();
 
-// Use Routes
+
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);

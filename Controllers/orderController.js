@@ -3,29 +3,29 @@ const Product = require('../models/productModel')
 const createOrder = async (req, res) => {
     try {
       const { userId, products, totalPrice } = req.body;
-  console.log('====================================');
+  
   console.log(req.body);
-  console.log('====================================');
-      // Create a new order
+  
+      
       const newOrder = new Order({
         userId,
         products,
         totalPrice,
-        orderDate: Date.now(), // automatically set the current date
+        orderDate: Date.now(), 
       });
 
 
   
-      // Save the order to the database
+      
       await newOrder.save();
   
-      // Update the sold count and reduce total count for each product
+      
       for (const productId of products) {
         const product = await Product.findById(productId);
         
         if (product.total > 0) {
           product.sold += 1;
-          product.total -= 1; // Reduce the total count by 1
+          product.total -= 1; 
   
           await product.save();
         } else {
@@ -40,13 +40,13 @@ const createOrder = async (req, res) => {
   };
   
 
-// Controller to get sales statistics
+
 const getSalesData = async (req, res) => {
   try {
-    // 1. Total number of orders placed
+    
     const totalOrders = await Order.countDocuments();
 
-    // 2. Total revenue broken down by product category
+    
     const revenueByCategory = await Order.aggregate([
       {
         $lookup: {
@@ -56,39 +56,39 @@ const getSalesData = async (req, res) => {
           as: 'productDetails',
         },
       },
-      { $unwind: '$productDetails' }, // Flatten the product details array
+      { $unwind: '$productDetails' }, 
       {
         $group: {
-          _id: '$productDetails.category', // Group by product category
-          totalRevenue: { $sum: '$productDetails.price' }, // Sum up the prices
+          _id: '$productDetails.category', 
+          totalRevenue: { $sum: '$productDetails.price' },
         },
       },
     ]);
 
-    // 3. Top 3 most popular products (by units sold)
+    
     const topProducts = await Product.find()
-      .sort({ sold: -1 }) // Sort by the 'sold' field in descending order
-      .limit(3); // Limit to top 3 products
+      .sort({ sold: -1 }) 
+      .limit(3); 
 
-    // 4. Average revenue per user
+    
     const totalRevenueAndUsers = await Order.aggregate([
       {
         $group: {
-          _id: '$userId', // Group by user ID
-          totalSpent: { $sum: '$totalPrice' }, // Sum up totalPrice for each user
+          _id: '$userId', 
+          totalSpent: { $sum: '$totalPrice' }, 
         },
       },
       {
         $group: {
-          _id: null, // Group all users together
-          totalRevenue: { $sum: '$totalSpent' }, // Calculate total revenue
-          userCount: { $sum: 1 }, // Count total number of users
+          _id: null, 
+          totalRevenue: { $sum: '$totalSpent' }, 
+          userCount: { $sum: 1 }, 
         },
       },
       {
         $project: {
           _id: 0,
-          averageRevenuePerUser: { $divide: ['$totalRevenue', '$userCount'] }, // Calculate average revenue per user
+          averageRevenuePerUser: { $divide: ['$totalRevenue', '$userCount'] }, 
         },
       },
     ]);
@@ -97,7 +97,7 @@ const getSalesData = async (req, res) => {
       ? totalRevenueAndUsers[0].averageRevenuePerUser
       : 0;
 
-    // Send the results back
+    
     res.json({
       totalOrders,
       revenueByCategory,
