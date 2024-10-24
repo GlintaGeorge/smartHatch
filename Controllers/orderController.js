@@ -1,43 +1,83 @@
 const Order = require('../models/orderModel');
 const Product = require('../models/productModel')
-const createOrder = async (req, res) => {
-    try {
-      const { userId, products, totalPrice } = req.body;
+// const createOrder = async (req, res) => {
+//     try {
+//       const { userId, products, totalPrice } = req.body;
   
-  console.log(req.body);
+//   console.log(req.body);
   
       
-      const newOrder = new Order({
-        userId,
-        products,
-        totalPrice,
-        orderDate: Date.now(), 
-      });
+//       const newOrder = new Order({
+//         userId,
+//         products,
+//         totalPrice,
+//         orderDate: Date.now(), 
+//       });
 
 
   
       
-      await newOrder.save();
+//       await newOrder.save();
   
       
-      for (const productId of products) {
-        const product = await Product.findById(productId);
+//       for (const productId of products) {
+//         const product = await Product.findById(productId);
         
-        if (product.total > 0) {
-          product.sold += 1;
-          product.total -= 1; 
+//         if (product.total > 0) {
+//           product.sold += 1;
+//           product.total -= 1; 
   
-          await product.save();
-        } else {
-          return res.status(400).json({ message: `Product ${product.name} is out of stock` });
-        }
+//           await product.save();
+//         } else {
+//           return res.status(400).json({ message: `Product ${product.name} is out of stock` });
+//         }
+//       }
+  
+//       res.status(201).json({ message: 'Order created successfully', newOrder });
+//     } catch (error) {
+//       res.status(400).json({ message: 'Error creating order', error });
+//     }
+//   };
+
+const createOrder = async (req, res) => {
+  try {
+    const { userId, products, totalPrice } = req.body;
+
+    // Step 1: Check if all products have sufficient stock
+    for (const productId of products) {
+      const product = await Product.findById(productId);
+
+      if (product.total <= 0) {
+        return res.status(400).json({ message: `Product ${product.name} is out of stock` });
       }
-  
-      res.status(201).json({ message: 'Order created successfully', newOrder });
-    } catch (error) {
-      res.status(400).json({ message: 'Error creating order', error });
     }
-  };
+
+    // Step 2: After confirming stock, create the order
+    const newOrder = new Order({
+      userId,
+      products,
+      totalPrice,
+      orderDate: Date.now(),
+    });
+
+    await newOrder.save();
+
+    // Step 3: Reduce the total stock and increment sold count for each product
+    for (const productId of products) {
+      const product = await Product.findById(productId);
+
+      product.sold += 1;
+      product.total -= 1;
+
+      await product.save();
+    }
+
+    res.status(201).json({ message: 'Order created successfully', newOrder });
+  } catch (error) {
+    res.status(400).json({ message: 'Error creating order', error });
+  }
+};
+
   
 
 
